@@ -24,6 +24,14 @@ class Dice():
 
 POINT = True
 COME_OUT = False
+NUM_TO_FIELD = {
+    4: "FOUR",
+    5: "FIVE",
+    6: "SIX",
+    8: "EIGHT",
+    9: "NINE",
+    10: "TEN",
+}
 
 
 class Action():
@@ -93,8 +101,8 @@ class Field():
     def __str__(self) -> str:
         disp = ""
         for player, amount in self.values.items():
-            disp += f"\n{player.name}: {amount}"
-        return f"{self.name}:{disp}"
+            disp += f"{player.name}: {amount}"
+        return f"{self.name}: {disp}"
 
     def get(self, player: Player) -> int:
         return self.values.get(player, 0)
@@ -109,11 +117,16 @@ class Field():
 
 
 class PassBet(Strategy):
+    def _num_points(self, game, player: Player) -> int:
+        return sum([f.get(player) > 0 for f in game.point_num_fields()])
+
     def next_action(self, game, player) -> Action:
-        if game.phase is COME_OUT:
-            if game.fields["PASS_LINE"].get(player) == 0:
-                return Bet("PASS_LINE", game.MIN_BET)
-            return DoNothing()
+        if game.phase is COME_OUT and game.is_empty("PASS_LINE", player):
+            return Bet("PASS_LINE", game.MIN_BET)
+        elif game.phase is POINT:
+            if game.is_empty("COME",
+                             player) and self._num_points(game, player) < 2:
+                return Bet("COME", game.MIN_BET)
         return DoNothing()
 
 
@@ -130,6 +143,13 @@ class Craps():
         self.players: List[Player] = []
         self.fields: Dict[str, Field] = {
             "PASS_LINE": Field("PASS_LINE"),
+            "COME": Field("COME"),
+            "FOUR": Field("FOUR"),
+            "FIVE": Field("FIVE"),
+            "SIX": Field("SIX"),
+            "EIGHT": Field("EIGHT"),
+            "NINE": Field("NINE"),
+            "TEN": Field("TEN"),
         }
 
     def join(self, player: Player) -> None:
@@ -146,6 +166,17 @@ class Craps():
             self._reconcile()
             self._print_game_status()
             self.iteration += 1
+
+    def point_num_fields(self) -> List[Field]:
+        return [self.fields[f] for f in ["FOUR", "FIVE", "SIX", "EIGHT", "NINE", "TEN"]]  # noqa
+
+    def current_point_field(self) -> str:
+        if self.point is None:
+            raise IllegalAction()
+        return NUM_TO_FIELD[self.point]
+
+    def is_empty(self, field_name: str, player: Player) -> bool:
+        return game.fields[field_name].get(player) == 0
 
     def _print_game_status(self) -> None:
         print(f"--- Game State ---")
@@ -166,7 +197,7 @@ class Craps():
             print(f"---> {player.name} -> {action}")
             if isinstance(action, Bet):
                 if self.phase is POINT and action.field_name == "PASS_LINE":
-                    raise IllegalAction
+                    raise IllegalAction()
                 player.deduct(action.amount)
                 self.fields[action.field_name].add(player, action.amount)
             if isinstance(action, Move):
@@ -182,23 +213,37 @@ class Craps():
                 self._establish_point(dice)
             elif dice in [7, 11]:
                 self._natural()
-        else:
+        elif self.phase is POINT:
             if dice == 7:
+                self._come_win()
                 self._seven_out()
-            elif dice == self.point:
-                self._pass_win()
+            elif dice == 11:
+                self._come_win()
+            elif dice in [2, 3, 12]:
+                self._come_lose()
+            elif dice in [4, 5, 6, 8, 9, 10]:
+                if dice == self.point:
+                    self._pass_win()
+                self._come_point_win(dice)
+                self._come_point_move(dice)
             else:
                 pass
 
     def _player_win(self, field_name: str, multiplier: int) -> None:
         for player in self.fields[field_name].values:
             bet = self.fields[field_name].deduct(player)
+            if bet == 0:
+                break
             win = bet * 1
             self.house_losses += win
+            print(f"!!!! Player WIN on {field_name}: {bet} bet + {win} win = {bet + win}")  # noqa
             player.add(bet + win)
 
     def _player_lose(self, field_name: str) -> None:
         for player in self.fields[field_name].values:
+            amount = self.fields[field_name].get(player)
+            if amount > 0:
+                print(f"XXXX Player LOSE: {amount}")
             self.house_wins += self.fields[field_name].deduct(player)
 
     def _establish_point(self, dice: int) -> None:
@@ -211,12 +256,40 @@ class Craps():
         self.phase = COME_OUT
         self.point = None
         self._player_lose("PASS_LINE")
+        self._player_lose("FOUR")
+        self._player_lose("FIVE")
+        self._player_lose("SIX")
+        self._player_lose("EIGHT")
+        self._player_lose("NINE")
+        self._player_lose("TEN")
 
     def _pass_win(self) -> None:
         print("---> PASS WIN")
         self.phase = COME_OUT
         self.point = None
         self._player_win("PASS_LINE", 1)
+
+    def _come_win(self) -> None:
+        print("---> COME CHECK WINNERS")
+        self._player_win("COME", 1)
+
+    def _come_lose(self) -> None:
+        print("---> COME CHECK LOSERS")
+        self._player_lose("COME")
+
+    def _move_all(self, from_field: str, to_field: str) -> None:
+        values = self.fields[from_field].values
+        self.fields[from_field].values = defaultdict(int)
+        for player, value in values.items():
+            self.fields[to_field].add(player, value)
+
+    def _come_point_move(self, point: int) -> None:
+        print(f"---> COME POINT MOVE TO {point}")
+        self._move_all("COME", NUM_TO_FIELD[point])
+
+    def _come_point_win(self, point: int) -> None:
+        print(f"---> COME POINT {point} CHECK WINNERS")
+        self._player_win(NUM_TO_FIELD[point], 1)
 
     def _natural(self) -> None:
         print("---> NATURAL!")
@@ -232,4 +305,4 @@ if __name__ == "__main__":
     game = Craps(10)
     player = Player(name="Evan", wallet=1000, strategy=PassBet())
     game.join(player)
-    game.start(max_iterations=1000)
+    game.start(max_iterations=100)
