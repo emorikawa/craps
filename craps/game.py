@@ -49,8 +49,10 @@ class Craps():
             "TEN_ODDS": OddsField("TEN_ODDS", max_odds=3),
         }
         self.game_history: List[int] = []
-        self.win_lose: Dict[str, Dict[str, float]] = defaultdict(
+        self.player_win_lose: Dict[str, int] = defaultdict(int)
+        self.field_win_lose: Dict[str, Dict[str, float]] = defaultdict(
             lambda: defaultdict(float))
+        self.rolls: Dict[int, int] = defaultdict(int)
 
     def join(self, player: Player) -> None:
         self.players.append(player)
@@ -111,6 +113,7 @@ class Craps():
     def _shoot(self) -> None:
         self.d1.roll()
         self.d2.roll()
+        self.rolls[self.dice()] += 1
 
     def _performPlayerActions(self) -> None:
         for player in self.players:
@@ -174,7 +177,7 @@ class Craps():
                 pass
 
     def _player_win(self, field_name: str, multiplier: float) -> None:
-        self.win_lose[field_name]['win'] += 1.0
+        self.field_win_lose[field_name]['win'] += 1.0
         for player in self.fields[field_name].values:
             bet = self.fields[field_name].deduct(player)
             if bet == 0:
@@ -182,15 +185,16 @@ class Craps():
             win = bet * multiplier
             self.house_losses += win
             print(f"!!!! Player WIN on {field_name}: {bet} bet + {win} win = {bet + win}")  # noqa
+            self.player_win_lose['win'] += win
             player.add(bet + win)
 
     def _player_lose(self, field_name: str) -> None:
-        self.win_lose[field_name]['lose'] += 1.0
+        self.field_win_lose[field_name]['lose'] += 1.0
         for player in self.fields[field_name].values:
             amount = self.fields[field_name].get(player)
             if amount > 0:
-                pass
                 print(f"XXXX Player LOSE: {amount} ON {field_name}")
+                self.player_win_lose['lose'] += amount
             self.house_wins += self.fields[field_name].deduct(player)
 
     def _establish_point(self, dice: int) -> None:
