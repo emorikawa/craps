@@ -12,11 +12,11 @@ if __name__ == "__main__":
     WALLET = 1000
     ITERATIONS = 10000
 
-    histories: List[List[List[int]]] = [[
-        coin_control(WALLET, ITERATIONS, MIN_BET)
-    ]]
+    histories: List[List[int]] = [coin_control(WALLET, ITERATIONS, MIN_BET)]
 
-    for strat in [PassBet(), PassComeBet(), PassComeOdds()]:
+    strategies = [PassBet(), PassComeBet(), PassComeOdds()]
+
+    for strat in strategies:
         print(f"\n\nPlaying: {type(strat).__name__}")
         game = Craps(10)
         player = Player(name="Evan", wallet=1000, strategy=strat)
@@ -30,6 +30,8 @@ if __name__ == "__main__":
 
     with open('out.csv', 'w') as csvfile:
         writer = csv.writer(csvfile)
-        for i in range(len(histories[0])):
-            row = [i] + [history[i][0] for history in histories]
+        writer.writerow(["Trial Num", "Coin Control"] +
+                        [type(s).__name__ for s in strategies])
+        for i in range(ITERATIONS):
+            row = [i] + [history[i] for history in histories]
             writer.writerow(row)

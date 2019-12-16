@@ -48,7 +48,7 @@ class Craps():
             "NINE_ODDS": OddsField("NINE_ODDS", max_odds=4),
             "TEN_ODDS": OddsField("TEN_ODDS", max_odds=3),
         }
-        self.game_history: List[List[int]] = []
+        self.game_history: List[int] = []
         self.win_lose: Dict[str, Dict[str, float]] = defaultdict(
             lambda: defaultdict(float))
 
@@ -105,7 +105,7 @@ class Craps():
             print(f"================================\n\n")
 
     def _record_game_history(self) -> None:
-        hist = [p.wallet for p in self.players]
+        hist = sum([p.wallet for p in self.players])
         self.game_history.append(hist)
 
     def _shoot(self) -> None:
