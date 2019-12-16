@@ -105,7 +105,7 @@ class Craps():
             print(f"================================\n\n")
 
     def _record_game_history(self) -> None:
-        hist = [self.iteration] + [p.wallet for p in self.players]
+        hist = [p.wallet for p in self.players]
         self.game_history.append(hist)
 
     def _shoot(self) -> None:
