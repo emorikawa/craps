@@ -60,17 +60,22 @@ class Craps():
     def dice(self) -> int:
         return self.d1.value + self.d2.value
 
-    def start(self, max_iterations: int) -> None:
-        while self.iteration < max_iterations:
-            if self.phase:
-                print(f"---> ON: {self.point}")
+    def start(self, max_iterations: Optional[int]) -> None:
+        cond = True
+        while cond:
+            if max_iterations is None:
+                cond = self.total_player_money() > 0
             else:
-                print(f"---> OFF: COMING OUT")
+                cond = self.iteration < max_iterations
+            # if self.phase:
+            #     print(f"---> ON: {self.point}")
+            # else:
+            #     print(f"---> OFF: COMING OUT")
             self._performPlayerActions()
             self._shoot()
-            print(f"---> Rolled {self.dice()}")
+            # print(f"---> Rolled {self.dice()}")
             self._reconcile()
-            self._print_game_status()
+            # self._print_game_status()
             self._record_game_history()
             self.iteration += 1
 
@@ -87,6 +92,9 @@ class Craps():
 
     def is_empty(self, field_name: str, player: Player) -> bool:
         return self.fields[field_name].get(player) == 0
+
+    def total_player_money(self) -> int:
+        return sum([p.wallet for p in self.players])
 
     def _print_game_status(self) -> None:
         for player in self.players:
@@ -118,8 +126,8 @@ class Craps():
     def _performPlayerActions(self) -> None:
         for player in self.players:
             actions = player.next_actions(self)
-            for action in actions:
-                print(f"---> {player.name} -> {action}")
+            # for action in actions:
+            #     print(f"---> {player.name} -> {action}")
             for action in actions:
                 self._performAction(action, player)
 
@@ -184,7 +192,7 @@ class Craps():
                 break
             win = bet * multiplier
             self.house_losses += win
-            print(f"!!!! Player WIN on {field_name}: {bet} bet + {win} win = {bet + win}")  # noqa
+            # print(f"!!!! Player WIN on {field_name}: {bet} bet + {win} win = {bet + win}")  # noqa
             self.player_win_lose['win'] += win
             player.add(bet + win)
 
@@ -193,12 +201,12 @@ class Craps():
         for player in self.fields[field_name].values:
             amount = self.fields[field_name].get(player)
             if amount > 0:
-                print(f"XXXX Player LOSE: {amount} ON {field_name}")
+                # print(f"XXXX Player LOSE: {amount} ON {field_name}")
                 self.player_win_lose['lose'] += amount
             self.house_wins += self.fields[field_name].deduct(player)
 
     def _establish_point(self, dice: int) -> None:
-        print(f"---> ESTABLISH POINT: {dice}")
+        # print(f"---> ESTABLISH POINT: {dice}")
         self.phase = POINT
         self.point = dice
 
@@ -263,10 +271,10 @@ class Craps():
         values = self.fields[from_field].values
         self.fields[from_field].values = defaultdict(int)
         for player, value in values.items():
-            if value > 0:
-                print(
-                    f"==== PLAYER MOVE {value} from {from_field} to {to_field}"
-                )
+            # if value > 0:
+            #     print(
+            #         f"== PLAYER MOVE {value} from {from_field} to {to_field}"
+            #     )
             self.fields[to_field].add(player, value)
 
     def _come_point_move(self, point: int) -> None:
