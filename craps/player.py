@@ -1,3 +1,4 @@
+from typing import List
 from craps.action import Action
 from craps.strategy import Strategy
 
@@ -15,8 +16,8 @@ class Player():
     def __str__(self) -> str:
         return f"{self.name} [{self.wallet}] playing {self.strategy}"
 
-    def next_action(self, game) -> Action:
-        return self.strategy.next_action(game, self)
+    def next_actions(self, game) -> List[Action]:
+        return self.strategy.next_actions(game, self)
 
     def add(self, amount: int) -> None:
         self.wallet += amount

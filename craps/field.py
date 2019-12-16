@@ -33,3 +33,9 @@ class Field():
         amount = self.values.get(player, 0)
         self.values[player] = 0
         return amount
+
+
+class OddsField(Field):
+    def __init__(self, name: str, max_odds: int):
+        super().__init__(name)
+        self.max_odds = max_odds
