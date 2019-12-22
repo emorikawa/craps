@@ -13,3 +13,12 @@ ROLL_ODDS = {
     11: 2/36,
     12: 1/36,
 }
+
+NUM_TO_FIELD = {
+    4: "FOUR",
+    5: "FIVE",
+    6: "SIX",
+    8: "EIGHT",
+    9: "NINE",
+    10: "TEN",
+}

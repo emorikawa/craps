@@ -2,15 +2,6 @@ from typing import Dict
 from collections import defaultdict
 from craps.player import Player
 
-NUM_TO_FIELD = {
-    4: "FOUR",
-    5: "FIVE",
-    6: "SIX",
-    8: "EIGHT",
-    9: "NINE",
-    10: "TEN",
-}
-
 
 class Field():
     def __init__(self, name: str):

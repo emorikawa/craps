@@ -1,14 +1,15 @@
 import csv
 import math
 import numpy  # type: ignore
+import logging
 from pprint import pprint
 from typing import List, Dict
 from collections import defaultdict
 from craps.player import Player
-from craps.strategy import PassBet, PassComeBet, PassComeOdds
+from craps.strategy import PassBet, PassComeBet, PassComeOdds, PlaceNumbers
 from craps.game import Craps
 from craps.coin_control import coin_control
-from craps.constants import ROLL_ODDS
+from craps.constants import ROLL_ODDS, COME_OUT
 
 
 def run_strageies_and_save():
@@ -26,7 +27,7 @@ def run_strageies_and_save():
         player = Player(name="Evan", wallet=WALLET, strategy=strat)
         game.join(player)
         game.start(max_iterations=ITERATIONS)
-        histories.append(game.game_history)
+        histories.append(game.game_history.wallet)
         for field_name, stats in game.field_win_lose.items():
             stats['percent'] = round(stats['win'] / stats['lose'] * 100.0, 2)
             print(field_name)
@@ -50,6 +51,34 @@ def run_strageies_and_save():
         for i in range(ITERATIONS):
             row = [i] + [history[i] for history in histories]
             writer.writerow(row)
+
+
+def dice_and_wallet():
+    MIN_BET = 10
+    WALLET = 1000
+    ITERATIONS = 100
+    strategy = PassBet()
+    game = Craps(MIN_BET)
+    player = Player(name="Evan", wallet=WALLET, strategy=strategy)
+    game.join(player)
+    game.start(max_iterations=ITERATIONS)
+    running_dice: List[str] = []
+    last_phase = COME_OUT
+    shooter_lengths: Dict[int, int] = defaultdict(int)
+    for hist in game.game_history:
+        running_dice.append(str(hist['dice']))
+        # phase = "COME OUT" if hist['phase'] else "POINT"
+        if hist['phase'] is not last_phase:
+            if hist['phase'] is COME_OUT and hist['dice'] == 7:
+                dice = ' '.join(running_dice)
+                print(f"[{len(running_dice)}] {dice} [{int(hist['wallet'])}] ")
+                shooter_lengths[len(running_dice)] += 1
+                running_dice = []
+            last_phase = hist['phase']
+    print(len(game.game_history))
+    for i in range(1, max(shooter_lengths.keys())):
+        print(f"{i+1}:\t{'*' * shooter_lengths.get(i+1, 0)}")
+    print(game.game_history[-1]['wallet']-WALLET)
 
 
 def _print_histogram(stats):
@@ -143,9 +172,22 @@ def how_long_to_live_control():
             writer.writerow(row)
 
 
+def basic_debug_run():
+    MIN_BET = 10
+    WALLET = 1000
+    ITERATIONS = 20
+    strategy = PlaceNumbers()
+    game = Craps(MIN_BET, log_level=logging.DEBUG)
+    player = Player(name="Evan", wallet=WALLET, strategy=strategy)
+    game.join(player)
+    game.start(max_iterations=ITERATIONS)
+
+
 # https://en.wikipedia.org/wiki/Glossary_of_craps_terms
 if __name__ == "__main__":
+    # dice_and_wallet()
     # run_strageies_and_save()
     # histogram_of_endings()
     # how_long_to_live()
-    how_long_to_live_control()
+    # how_long_to_live_control()
+    basic_debug_run()

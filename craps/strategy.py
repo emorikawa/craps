@@ -1,6 +1,6 @@
 from typing import List
 from craps.action import Action, Bet, DoNothing
-from craps.constants import POINT, COME_OUT
+from craps.constants import POINT, COME_OUT, NUM_TO_FIELD
 
 
 class Strategy():
@@ -75,4 +75,22 @@ class PassComeOdds(Strategy):
                              player) and self._num_come_bets(game, player) < 2:
                 actions.append(Bet("COME", game.MIN_BET))
             return actions
+        return [DoNothing()]
+
+
+class PlaceNumbers(Strategy):
+    def next_actions(self, game, player) -> List[Action]:
+        if game.phase is COME_OUT and game.is_empty("PASS_LINE", player):
+            return [Bet("PASS_LINE", game.MIN_BET)]
+        elif game.phase is POINT:
+            bets: List[Action] = []
+            for field in game.place_num_fields():
+                no_bet = f"{NUM_TO_FIELD[game.point]}_PLACE"
+                if game.is_empty(field.name, player) and field.name != no_bet:
+                    bets.append(Bet(field.name, game.place_bets(field)))
+                else:
+                    continue
+            if game.is_empty("FIELD", player):
+                bets.append(Bet("FIELD", game.MIN_BET))
+            return bets
         return [DoNothing()]
