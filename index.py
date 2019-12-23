@@ -6,10 +6,12 @@ from pprint import pprint
 from typing import List, Dict
 from collections import defaultdict
 from craps.player import Player
-from craps.strategy import PassBet, PassComeBet, PassComeOdds, PlaceNumbers
+from craps.strategy import (PassBet, PassComeBet, ThreePointMolly, PlaceNumbers,  # noqa
+                            ColorUp, FieldBetOnly, IronCross)
 from craps.game import Craps
 from craps.coin_control import coin_control
 from craps.constants import ROLL_ODDS, COME_OUT
+from craps.plot import plot
 
 
 def run_strageies_and_save():
@@ -17,9 +19,9 @@ def run_strageies_and_save():
     WALLET = 1000
     ITERATIONS = 100
 
-    histories: List[List[int]] = [coin_control(WALLET, ITERATIONS, MIN_BET)]
+    histories: List[List[int]] = []
 
-    strategies = [PassBet(), PassComeBet(), PassComeOdds()]
+    strategies = [PassBet(), PassComeBet(), ThreePointMolly()]
 
     for strat in strategies:
         print(f"\n\nPlaying: {type(strat).__name__}")
@@ -27,7 +29,7 @@ def run_strageies_and_save():
         player = Player(name="Evan", wallet=WALLET, strategy=strat)
         game.join(player)
         game.start(max_iterations=ITERATIONS)
-        histories.append(game.game_history.wallet)
+        histories.append([h['wallet'] for h in game.game_history])
         for field_name, stats in game.field_win_lose.items():
             stats['percent'] = round(stats['win'] / stats['lose'] * 100.0, 2)
             print(field_name)
@@ -44,13 +46,14 @@ def run_strageies_and_save():
         print(f"Player lost: {ploss}")
         print(f"Player net: {pwin - ploss}")
 
-    with open('out.csv', 'w') as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(["Trial Num", "Coin Control"] +
-                        [type(s).__name__ for s in strategies])
-        for i in range(ITERATIONS):
-            row = [i] + [history[i] for history in histories]
-            writer.writerow(row)
+    plot(histories)
+    # with open('out.csv', 'w') as csvfile:
+    #     writer = csv.writer(csvfile)
+    #     writer.writerow(["Trial Num", "Coin Control"] +
+    #                     [type(s).__name__ for s in strategies])
+    #     for i in range(ITERATIONS):
+    #         row = [i] + [history[i] for history in histories]
+    #         writer.writerow(row)
 
 
 def dice_and_wallet():
@@ -121,7 +124,7 @@ def histogram_of_endings():
     end_wallets: List[int] = []
     for trial in range(NUM_TRIALS):
         game = Craps(MIN_BET)
-        player = Player(name="Evan", wallet=WALLET, strategy=PassComeOdds())
+        player = Player(name="Evan", wallet=WALLET, strategy=ThreePointMolly())
         game.join(player)
         game.start(max_iterations=ITERATIONS)
         end_wallets.append(game.total_player_money())
@@ -136,7 +139,7 @@ def how_long_to_live():
     num_rolls: List[int] = []
     for trial in range(NUM_TRIALS):
         game = Craps(MIN_BET)
-        player = Player(name="Evan", wallet=WALLET, strategy=PassComeOdds())
+        player = Player(name="Evan", wallet=WALLET, strategy=ThreePointMolly())
         game.join(player)
         game.start(max_iterations=None)
         num_rolls.append(game.iteration)
@@ -176,11 +179,29 @@ def basic_debug_run():
     MIN_BET = 10
     WALLET = 1000
     ITERATIONS = 20
-    strategy = PlaceNumbers()
+    strategy = FieldBetOnly()
     game = Craps(MIN_BET, log_level=logging.DEBUG)
     player = Player(name="Evan", wallet=WALLET, strategy=strategy)
     game.join(player)
     game.start(max_iterations=ITERATIONS)
+
+
+def plot_strategies(strategies):
+    MIN_BET = 10
+    WALLET = 1000
+    NUM_TRIALS = 10
+    ITERATIONS = 1000
+    histories: List[List[List[int]]] = []
+    for strategy in strategies:
+        trials: List[List[int]] = []
+        for trial in range(NUM_TRIALS):
+            game = Craps(MIN_BET)
+            player = Player(name="Evan", wallet=WALLET, strategy=strategy)
+            game.join(player)
+            game.start(max_iterations=ITERATIONS)
+            trials.append([h['wallet'] for h in game.game_history])
+        histories.append(trials)
+    plot(histories)
 
 
 # https://en.wikipedia.org/wiki/Glossary_of_craps_terms
@@ -190,4 +211,5 @@ if __name__ == "__main__":
     # histogram_of_endings()
     # how_long_to_live()
     # how_long_to_live_control()
-    basic_debug_run()
+    # basic_debug_run()
+    plot_strategies(strategies=[IronCross()])

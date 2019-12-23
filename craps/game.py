@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Union
 from typing_extensions import TypedDict
 from collections import defaultdict
 from craps.dice import Dice
@@ -90,6 +90,7 @@ class Craps():
         self.rolls: Dict[int, int] = defaultdict(int)
 
     def join(self, player: Player) -> None:
+        player.strategy.init_strategy(self, player)
         self.players.append(player)
 
     def dice(self) -> int:
@@ -115,8 +116,11 @@ class Craps():
             self._record_game_history()
             self.iteration += 1
 
-    def place_bets(self, field: Field) -> int:
-        if field.name in ["SIX_PLACE", "EIGHT_PLACE"]:
+    def place_bets(self, field: Union[Field, str]) -> int:
+        name = field
+        if isinstance(field, Field):
+            name = field.name
+        if name in ["SIX_PLACE", "EIGHT_PLACE"]:
             mult_6_bet = 0
             while mult_6_bet < self.MIN_BET:
                 mult_6_bet += 6
@@ -141,11 +145,6 @@ class Craps():
             self.fields[f"{f}_ODDS"]
             for f in ["FOUR", "FIVE", "SIX", "EIGHT", "NINE", "TEN"]
         ]
-
-    def current_point_field(self) -> Field:
-        if self.point is None:
-            raise IllegalAction()
-        return self.fields[NUM_TO_FIELD[self.point]]
 
     def is_empty(self, field_name: str, player: Player) -> bool:
         return self.fields[field_name].get(player) == 0

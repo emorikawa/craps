@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Any, Dict
 from craps.action import Action
 from craps.strategy import Strategy
 
@@ -12,6 +12,7 @@ class Player():
         self.name = name
         self.wallet = wallet
         self.strategy = strategy
+        self.strategy_state: Dict[str, Any] = dict()
 
     def __str__(self) -> str:
         return f"{self.name} [{self.wallet}] playing {self.strategy}"
